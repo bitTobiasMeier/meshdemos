@@ -1,0 +1,155 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "defaultValue": "SouthCentralUS",
+      "type": "String",
+      "metadata": {
+        "description": "Location of the resources."
+      }
+    },
+    "registryPassword": {
+      "defaultValue": "",
+      "type": "SecureString"
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2018-07-01-preview",
+      "name": "BASTA2018SFMeshDemo",
+      "type": "Microsoft.ServiceFabricMesh/applications",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "Microsoft.ServiceFabricMesh/networks/BASTA2018SFMeshDemoNetwork"
+      ],
+      "properties": {
+        "services": [
+          {
+            "name": "Portal",
+            "properties": {
+              "description": "Portal description.",
+              "osType": "Windows",
+              "codePackages": [
+                {
+                  "name": "Portal",
+                  "image": "basta2018sfmeshdemoacr.azurecr.io/portal:20180920105506",
+                  "endpoints": [
+                    {
+                      "name": "PortalListener",
+                      "port": 20009
+                    }
+                  ],
+                  "environmentVariables": [
+                    {
+                      "name": "ASPNETCORE_URLS",
+                      "value": "http://+:20009"
+                    },
+                    {
+                      "name": "RestaurantServicePort",
+                      "value": "20004"
+                    },
+                    {
+                      "name": "RestaurantServiceName",
+                      "value": "restaurantservice.basta2018sfmeshdemo"
+                    }
+                  ],
+                  "resources": {
+                    "requests": {
+                      "cpu": 0.5,
+                      "memoryInGB": 1.0
+                    }
+                  },
+                  "imageRegistryCredential": {
+                    "server": "basta2018sfmeshdemoacr.azurecr.io",
+                    "username": "BASTA2018SFMeshDemoacr",
+                    "password": "[parameters('registryPassword')]"
+                  }
+                }
+              ],
+              "replicaCount": 2,
+              "networkRefs": [
+                {
+                  "name": "[resourceId('Microsoft.ServiceFabricMesh/networks', 'BASTA2018SFMeshDemoNetwork')]"
+                }
+              ]
+            }
+          },
+          {
+            "name": "RestaurantService",
+            "properties": {
+              "description": "RestaurantService description.",
+              "osType": "Windows",
+              "codePackages": [
+                {
+                  "name": "RestaurantService",
+                  "image": "basta2018sfmeshdemoacr.azurecr.io/restaurantservice:20180920105506",
+                  "endpoints": [
+                    {
+                      "name": "RestaurantServiceListener",
+                      "port": 20004
+                    }
+                  ],
+                  "environmentVariables": [
+                    {
+                      "name": "ASPNETCORE_URLS",
+                      "value": "http://+:20004"
+                    },
+                    {
+                      "name": "PortalServicePort",
+                      "value": "20009"
+                    },
+                    {
+                      "name": "PortalServiceName",
+                      "value": "portal.basta2018sfmeshdemo"
+                    }
+                  ],
+                  "resources": {
+                    "requests": {
+                      "cpu": 0.5,
+                      "memoryInGB": 1.0
+                    }
+                  },
+                  "imageRegistryCredential": {
+                    "server": "basta2018sfmeshdemoacr.azurecr.io",
+                    "username": "BASTA2018SFMeshDemoacr",
+                    "password": "[parameters('registryPassword')]"
+                  }
+                }
+              ],
+              "replicaCount": 3,
+              "networkRefs": [
+                {
+                  "name": "[resourceId('Microsoft.ServiceFabricMesh/networks', 'BASTA2018SFMeshDemoNetwork')]"
+                }
+              ]
+            }
+          }
+        ],
+        "description": "BASTA2018SFMeshDemo description."
+      }
+    },
+    {
+      "apiVersion": "2018-07-01-preview",
+      "name": "BASTA2018SFMeshDemoNetwork",
+      "type": "Microsoft.ServiceFabricMesh/networks",
+      "location": "[parameters('location')]",
+      "dependsOn": [],
+      "properties": {
+        "description": "BASTA2018SFMeshDemoNetwork description.",
+        "addressPrefix": "10.0.0.4/22",
+        "ingressConfig": {
+          "layer4": [
+            {
+              "name": "PortalIngress",
+              "publicPort": "20009",
+              "applicationName": "BASTA2018SFMeshDemo",
+              "serviceName": "Portal",
+              "endpointName": "PortalListener"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
